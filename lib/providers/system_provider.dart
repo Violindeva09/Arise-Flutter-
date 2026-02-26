@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import '../models/player_stats.dart';
 import '../models/item.dart';
 import '../models/skill.dart';
+import '../models/equipment_slot.dart';
 import '../data/penalty_data.dart';
 import '../data/inventory_data.dart';
+import '../services/equipment_service.dart';
 import '../services/game_logic.dart';
 import '../services/persistence_service.dart';
 
@@ -25,33 +27,57 @@ class SystemProvider with ChangeNotifier {
   bool _isPenaltyActive = false;
   List<Item> _inventory = [];
 
-  // Getters
   PlayerStats get stats => _stats;
+  PlayerStats get computedStats => EquipmentService.applyAllBonuses(_stats, _inventory);
   String get playerName => _playerName;
   String get email => _email;
   List<Item> get inventory => _inventory;
   bool get isPenaltyActive => _isPenaltyActive;
+
+  Item? get equippedWeapon => _equippedFor(EquipmentSlot.weapon);
+  Item? get equippedArmor => _equippedFor(EquipmentSlot.armor);
+  Item? get equippedAccessory => _equippedFor(EquipmentSlot.accessory);
+
   Penalty? get currentPenalty =>
       _isPenaltyActive ? PenaltyData.getCurrentPenalty() : null;
 
-  // Architect's Formulas - Delegated to logic layer
-  int get maxHp => GameLogic.getMaxHp(_stats.vitality);
-  int get maxMp => GameLogic.getMaxMp(_stats.intelligence, _stats.sense);
+
+  Item? _equippedFor(EquipmentSlot slot) {
+    for (final item in _inventory) {
+      if (item.slot == slot && item.isEquipped) return item;
+    }
+    return null;
+  }
+
+
+  int get maxHp => GameLogic.getMaxHp(computedStats.vitality);
+  int get maxMp => GameLogic.getMaxMp(computedStats.intelligence, computedStats.sense);
   double get expProgress => GameLogic.getExpProgress(_stats.exp, _stats.level);
 
-  // History Tracking
   final List<Map<String, dynamic>> _questHistory = [];
   List<Map<String, dynamic>> get questHistory => _questHistory;
 
   Future<void> init(String name, String email) async {
     _playerName = name;
     _email = email;
-    final savedStats = await PersistenceService.loadPlayerStats(name);
-    if (savedStats != null) {
-      _stats = savedStats;
+    final savedState = await PersistenceService.loadPlayerState(name);
+    if (savedState != null) {
+      _stats = savedState.stats;
     }
     _updateInventory();
+    if (savedState != null) {
+      _restoreEquippedItems(savedState.equippedItemIds);
+    }
     notifyListeners();
+  }
+
+  void _restoreEquippedItems(List<String> equippedItemIds) {
+    for (final id in equippedItemIds) {
+      final matches = _inventory.where((item) => item.id == id);
+      if (matches.isEmpty) continue;
+      EquipmentService.toggleEquip(matches.first, _inventory);
+      matches.first.isEquipped = true;
+    }
   }
 
   void _updateInventory() {
@@ -62,6 +88,12 @@ class SystemProvider with ChangeNotifier {
     _stats = _stats.copyWith(preferredWorkoutType: type);
     _updateInventory();
     _saveAndNotify();
+  }
+
+  bool equipOrUnequip(Item item) {
+    final changed = EquipmentService.toggleEquip(item, _inventory);
+    if (changed) _saveAndNotify();
+    return changed;
   }
 
   void awakenPlayer() {
@@ -99,11 +131,7 @@ class SystemProvider with ChangeNotifier {
     }
   }
 
-  void _checkSkillUnlocks(PlayerStats oldStats) {
-    // In a real app, we'd compare which skills changed from locked to unlocked
-    // and trigger an event/notification.
-    // This is a placeholder for the Event Trigger.
-  }
+  void _checkSkillUnlocks(PlayerStats oldStats) {}
 
   void activatePenalty() {
     _isPenaltyActive = true;
@@ -112,7 +140,6 @@ class SystemProvider with ChangeNotifier {
 
   void resolvePenalty() {
     _isPenaltyActive = false;
-    // Penalties grant a level up but reset EXP
     _stats = GameLogic.calculateLevelUp(_stats.copyWith(
       exp: GameLogic.getExpRequired(_stats.level),
     )).copyWith(exp: 0);
@@ -127,7 +154,11 @@ class SystemProvider with ChangeNotifier {
   }
 
   void _saveAndNotify() {
-    PersistenceService.savePlayerStats(_playerName, _stats);
+    PersistenceService.savePlayerState(
+      _playerName,
+      stats: _stats,
+      equippedItemIds: _inventory.where((item) => item.isEquipped).map((item) => item.id).toList(),
+    );
     notifyListeners();
   }
 

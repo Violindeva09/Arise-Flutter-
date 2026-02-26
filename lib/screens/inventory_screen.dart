@@ -20,7 +20,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
     final workoutType = system.stats.preferredWorkoutType;
     final items = system.inventory;
 
-    // Show currently selected item details or fall back to first item
     final selectedItem =
         (_selectedSlot != null && _selectedSlot! < items.length)
             ? items[_selectedSlot!]
@@ -34,7 +33,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildHeader(),
+              _buildHeader(system),
               const SizedBox(height: 12),
               _buildSpecializationTag(workoutType),
               const SizedBox(height: 32),
@@ -46,14 +45,14 @@ class _InventoryScreenState extends State<InventoryScreen> {
                     mainAxisSpacing: 8,
                     childAspectRatio: 1.0,
                   ),
-                  itemCount: 36, // Standard 6x6 Grid
+                  itemCount: 36,
                   itemBuilder: (context, index) {
                     final item = index < items.length ? items[index] : null;
-                    return _buildSlot(index, item);
+                    return _buildSlot(index, item, system);
                   },
                 ),
               ),
-              if (selectedItem != null) _buildItemDetail(selectedItem),
+              if (selectedItem != null) _buildItemDetail(selectedItem, system),
             ],
           ),
         ),
@@ -61,12 +60,17 @@ class _InventoryScreenState extends State<InventoryScreen> {
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(SystemProvider system) {
     return Row(
       children: [
         AriseUI.ornament(),
         const SizedBox(width: 12),
         const Text("03 INVENTORY", style: AriseUI.heading),
+        const Spacer(),
+        Text(
+          'W:${system.equippedWeapon?.name ?? '-'} A:${system.equippedArmor?.name ?? '-'} X:${system.equippedAccessory?.name ?? '-'}',
+          style: const TextStyle(color: Colors.white54, fontSize: 8),
+        )
       ],
     );
   }
@@ -87,7 +91,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
     );
   }
 
-  Widget _buildSlot(int index, Item? item) {
+  Widget _buildSlot(int index, Item? item, SystemProvider system) {
     bool isSelected = _selectedSlot == index ||
         (_selectedSlot == null && index == 0 && item != null);
 
@@ -110,24 +114,34 @@ class _InventoryScreenState extends State<InventoryScreen> {
                     : AriseUI.primary.withOpacity(0.2)),
             width: isSelected ? 2 : 1,
           ),
-          boxShadow: isSelected
-              ? [
-                  BoxShadow(
-                      color: AriseUI.primary.withOpacity(0.3), blurRadius: 8)
-                ]
-              : null,
         ),
         child: item == null
             ? null
-            : Center(
-                child: Icon(_getItemIcon(item.type),
-                    color: AriseUI.primary, size: 20),
+            : Stack(
+                children: [
+                  Center(
+                    child: Icon(_getItemIcon(item.type),
+                        color: AriseUI.primary, size: 20),
+                  ),
+                  if (item.isEquipped)
+                    const Positioned(
+                      top: 2,
+                      right: 2,
+                      child: Icon(Icons.check_circle,
+                          color: Colors.lightGreenAccent, size: 12),
+                    ),
+                ],
               ),
       ),
     );
   }
 
-  Widget _buildItemDetail(Item item) {
+  Widget _buildItemDetail(Item item, SystemProvider system) {
+    final canEquip = item.type == ItemType.weapon ||
+        item.type == ItemType.armor ||
+        item.type == ItemType.accessory;
+    final isEquipped = item.isEquipped;
+
     return Container(
       margin: const EdgeInsets.only(top: 24),
       padding: const EdgeInsets.all(20),
@@ -157,16 +171,11 @@ class _InventoryScreenState extends State<InventoryScreen> {
                             fontWeight: FontWeight.bold,
                             fontSize: 14,
                             letterSpacing: 1)),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 2),
-                      color: AriseUI.secondary.withOpacity(0.2),
-                      child: Text("RANK ${item.rarity.name}",
-                          style: const TextStyle(
-                              color: AriseUI.secondary,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 9)),
-                    ),
+                    if (canEquip)
+                      OutlinedButton(
+                        onPressed: () => system.equipOrUnequip(item),
+                        child: Text(isEquipped ? 'UNEQUIP' : 'EQUIP'),
+                      ),
                   ],
                 ),
                 const SizedBox(height: 12),
@@ -177,11 +186,9 @@ class _InventoryScreenState extends State<InventoryScreen> {
                         height: 1.5,
                         fontStyle: FontStyle.italic)),
                 const SizedBox(height: 8),
-                Text("USABLE BY: ${item.id.split('_')[0].toUpperCase()}",
-                    style: TextStyle(
-                        color: AriseUI.primary.withOpacity(0.5),
-                        fontSize: 7,
-                        fontWeight: FontWeight.bold)),
+                Text(
+                    '+${item.statBoost.strength} STR  +${item.statBoost.agility} AGI  +${item.statBoost.vitality} VIT  +${item.statBoost.sense} SENSE  +${item.statBoost.intelligence} INT',
+                    style: const TextStyle(color: Colors.white70, fontSize: 9)),
               ],
             ),
           ),
