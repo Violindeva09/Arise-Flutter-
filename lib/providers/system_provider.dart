@@ -6,6 +6,7 @@ import '../data/penalty_data.dart';
 import '../data/inventory_data.dart';
 import '../services/game_logic.dart';
 import '../services/persistence_service.dart';
+import '../services/stat_resolver.dart';
 
 class SystemProvider with ChangeNotifier {
   PlayerStats _stats = PlayerStats(
@@ -24,19 +25,24 @@ class SystemProvider with ChangeNotifier {
   String _email = "";
   bool _isPenaltyActive = false;
   List<Item> _inventory = [];
+  final Map<ItemType, Item> _equippedItems = {};
 
   // Getters
   PlayerStats get stats => _stats;
   String get playerName => _playerName;
   String get email => _email;
   List<Item> get inventory => _inventory;
+  Map<ItemType, Item> get equippedItems => Map.unmodifiable(_equippedItems);
   bool get isPenaltyActive => _isPenaltyActive;
   Penalty? get currentPenalty =>
       _isPenaltyActive ? PenaltyData.getCurrentPenalty() : null;
 
-  // Architect's Formulas - Delegated to logic layer
-  int get maxHp => GameLogic.getMaxHp(_stats.vitality);
-  int get maxMp => GameLogic.getMaxMp(_stats.intelligence, _stats.sense);
+  // Base vs modified stat separation via resolver
+  ResolvedPlayerStats get resolvedStats =>
+      StatResolver.resolve(baseStats: _stats, equippedItems: _equippedItems.values);
+
+  int get maxHp => resolvedStats.maxHp;
+  int get maxMp => resolvedStats.maxMp;
   double get expProgress => GameLogic.getExpProgress(_stats.exp, _stats.level);
 
   // History Tracking
@@ -46,12 +52,32 @@ class SystemProvider with ChangeNotifier {
   Future<void> init(String name, String email) async {
     _playerName = name;
     _email = email;
-    final savedStats = await PersistenceService.loadPlayerStats(name);
-    if (savedStats != null) {
-      _stats = savedStats;
+    final savedState = await PersistenceService.loadPlayerState(name);
+    if (savedState != null) {
+      _stats = savedState.stats;
+    } else {
+      final savedStats = await PersistenceService.loadPlayerStats(name);
+      if (savedStats != null) {
+        _stats = savedStats;
+      }
     }
     _updateInventory();
+    if (savedState != null) {
+      _restoreEquippedItems(savedState.equippedItemIds);
+    }
     notifyListeners();
+  }
+
+  void _restoreEquippedItems(List<String> equippedItemIds) {
+    final availableItems = InventoryData.allItems;
+    for (final id in equippedItemIds) {
+      final matches = availableItems.where((item) => item.id == id);
+      if (matches.isEmpty) continue;
+      final item = matches.first;
+      if (_isEquippable(item.type) && _equippedItems[item.type] == null) {
+        _equippedItems[item.type] = item;
+      }
+    }
   }
 
   void _updateInventory() {
@@ -91,6 +117,28 @@ class SystemProvider with ChangeNotifier {
     _saveAndNotify();
   }
 
+  bool equipItem(Item item) {
+    if (!_isEquippable(item.type)) return false;
+    _equippedItems[item.type] = item;
+    _saveAndNotify();
+    return true;
+  }
+
+  bool unequipItem(ItemType slot) {
+    final removed = _equippedItems.remove(slot);
+    if (removed == null) return false;
+    _saveAndNotify();
+    return true;
+  }
+
+  bool isEquipped(Item item) => _equippedItems[item.type]?.id == item.id;
+
+  bool _isEquippable(ItemType type) {
+    return type == ItemType.weapon ||
+        type == ItemType.armor ||
+        type == ItemType.accessory;
+  }
+
   void _checkClassPromotion() {
     if (_stats.level >= GameLogic.CLASS_CHANGE_LEVEL &&
         _stats.hunterClass == "NONE") {
@@ -99,11 +147,7 @@ class SystemProvider with ChangeNotifier {
     }
   }
 
-  void _checkSkillUnlocks(PlayerStats oldStats) {
-    // In a real app, we'd compare which skills changed from locked to unlocked
-    // and trigger an event/notification.
-    // This is a placeholder for the Event Trigger.
-  }
+  void _checkSkillUnlocks(PlayerStats oldStats) {}
 
   void activatePenalty() {
     _isPenaltyActive = true;
@@ -112,7 +156,6 @@ class SystemProvider with ChangeNotifier {
 
   void resolvePenalty() {
     _isPenaltyActive = false;
-    // Penalties grant a level up but reset EXP
     _stats = GameLogic.calculateLevelUp(_stats.copyWith(
       exp: GameLogic.getExpRequired(_stats.level),
     )).copyWith(exp: 0);
@@ -127,7 +170,11 @@ class SystemProvider with ChangeNotifier {
   }
 
   void _saveAndNotify() {
-    PersistenceService.savePlayerStats(_playerName, _stats);
+    PersistenceService.savePlayerState(
+      _playerName,
+      stats: _stats,
+      equippedItemIds: _equippedItems.values.map((item) => item.id).toList(),
+    );
     notifyListeners();
   }
 

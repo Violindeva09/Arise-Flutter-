@@ -23,8 +23,8 @@ class Item {
     return Item(
       id: json['id'],
       name: json['name'],
-      type: ItemType.values.byName(json['type']),
-      rarity: ItemRarity.values.byName(json['rarity']),
+      type: _safeItemType(json['type']),
+      rarity: _safeItemRarity(json['rarity']),
       description: json['description'] ?? json['desc'] ?? "",
       statBoost: Map<String, int>.from(json['statBoost'] ?? {}),
     );
@@ -40,4 +40,20 @@ class Item {
       'statBoost': statBoost,
     };
   }
+}
+
+ItemType _safeItemType(dynamic raw) {
+  final value = raw?.toString() ?? '';
+  for (final type in ItemType.values) {
+    if (type.name == value) return type;
+  }
+  return ItemType.material;
+}
+
+ItemRarity _safeItemRarity(dynamic raw) {
+  final value = raw?.toString() ?? '';
+  for (final rarity in ItemRarity.values) {
+    if (rarity.name == value) return rarity;
+  }
+  return ItemRarity.D;
 }

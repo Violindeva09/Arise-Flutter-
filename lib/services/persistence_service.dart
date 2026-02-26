@@ -2,54 +2,98 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/player_stats.dart';
 
-class PersistenceService {
-  static const String _keyPrefix = "arise_v1_"; // Updated prefix for versioning
-  static const int SCHEMA_VERSION = 1;
+class PlayerSaveState {
+  final PlayerStats stats;
+  final List<String> equippedItemIds;
 
-  static Future<void> savePlayerStats(
-      String playerName, PlayerStats stats) async {
+  const PlayerSaveState({required this.stats, required this.equippedItemIds});
+}
+
+class PersistenceService {
+  static const String _keyPrefix = "arise_v1_";
+  static const int dataVersion = 2;
+
+  static Future<void> savePlayerState(
+    String playerName, {
+    required PlayerStats stats,
+    required List<String> equippedItemIds,
+  }) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final data = {
-        'version': SCHEMA_VERSION,
+      final payload = {
+        'dataVersion': dataVersion,
         'stats': stats.toJson(),
+        'equippedItemIds': equippedItemIds,
         'timestamp': DateTime.now().toIso8601String(),
       };
-      final jsonString = jsonEncode(data);
-      await prefs.setString("$_keyPrefix${playerName}_stats", jsonString);
+      await prefs.setString("$_keyPrefix${playerName}_stats", jsonEncode(payload));
     } catch (e) {
       // ignore: avoid_print
       print("ERROR: Persistence failure: $e");
     }
   }
 
-  static Future<PlayerStats?> loadPlayerStats(String playerName) async {
+  static Future<void> savePlayerStats(String playerName, PlayerStats stats) {
+    return savePlayerState(playerName, stats: stats, equippedItemIds: const []);
+  }
+
+  static Future<PlayerSaveState?> loadPlayerState(String playerName) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final jsonString = prefs.getString("$_keyPrefix${playerName}_stats");
+      if (jsonString == null) return null;
 
-      if (jsonString != null) {
-        final Map<String, dynamic> data = jsonDecode(jsonString);
-        final int version = data['version'] ?? 0;
+      final Map<String, dynamic> data = jsonDecode(jsonString);
+      final migrated = _migrateToCurrent(data);
+      if (!_isValidPayload(migrated)) return null;
 
-        if (version == SCHEMA_VERSION) {
-          return PlayerStats.fromJson(data['stats']);
-        } else {
-          // Handle migration logic here in future
-          return _handleMigration(version, data['stats']);
-        }
-      }
+      final statsJson = Map<String, dynamic>.from(migrated['stats']);
+      final equippedRaw = migrated['equippedItemIds'] as List<dynamic>? ?? const [];
+      final equippedItemIds =
+          equippedRaw.map((id) => id.toString()).where((id) => id.isNotEmpty).toList();
+
+      return PlayerSaveState(
+        stats: PlayerStats.fromJson(statsJson),
+        equippedItemIds: equippedItemIds,
+      );
     } catch (e) {
       // ignore: avoid_print
       print("ERROR: Load failure, using fallback: $e");
+      return null;
     }
-    return null; // Triggers default stats in Provider
   }
 
-  static PlayerStats? _handleMigration(
-      int oldVersion, Map<String, dynamic> data) {
-    // Migration logic placeholder
-    return PlayerStats.fromJson(data);
+  static Future<PlayerStats?> loadPlayerStats(String playerName) async {
+    final state = await loadPlayerState(playerName);
+    return state?.stats;
+  }
+
+  static Map<String, dynamic> _migrateToCurrent(Map<String, dynamic> payload) {
+    final legacyVersion = payload['version'] as int?;
+    var version = (payload['dataVersion'] as int?) ?? legacyVersion ?? 0;
+    var next = Map<String, dynamic>.from(payload);
+
+    while (version < dataVersion) {
+      if (version == 0 || version == 1) {
+        next['dataVersion'] = 2;
+        next['equippedItemIds'] = next['equippedItemIds'] ?? <String>[];
+        version = 2;
+      } else {
+        break;
+      }
+    }
+    return next;
+  }
+
+  static bool _isValidPayload(Map<String, dynamic> payload) {
+    final stats = payload['stats'];
+    if (stats is! Map) return false;
+
+    final level = stats['level'];
+    final exp = stats['exp'];
+    if (level is! int || level < 1) return false;
+    if (exp is! int || exp < 0) return false;
+    return true;
   }
 
   static Future<void> clearAllData() async {
