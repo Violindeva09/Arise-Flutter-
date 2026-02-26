@@ -25,7 +25,7 @@ class _StatusScreenState extends State<StatusScreen>
   Widget build(BuildContext context) {
     final system = Provider.of<SystemProvider>(context);
     final stats = system.stats;
-    final computed = system.computedStats;
+    final resolved = system.resolvedStats;
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -43,7 +43,7 @@ class _StatusScreenState extends State<StatusScreen>
                 child: TabBarView(
                   controller: _tabController,
                   children: [
-                    _buildStatsTab(system, stats, computed),
+                    _buildStatsTab(system, stats, resolved),
                     _buildHistoryTab(system),
                   ],
                 ),
@@ -87,16 +87,16 @@ class _StatusScreenState extends State<StatusScreen>
     );
   }
 
-  Widget _buildStatsTab(SystemProvider system, stats, computed) {
+  Widget _buildStatsTab(SystemProvider system, stats, resolved) {
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildProfileSection(system, stats),
           const SizedBox(height: 32),
-          _buildMetersSection(system, computed),
+          _buildMetersSection(system, resolved),
           const SizedBox(height: 32),
-          _buildStatsGrid(stats, computed),
+          _buildStatsGrid(stats, resolved),
           const SizedBox(height: 32),
           _buildClassGate(stats),
         ],
@@ -148,7 +148,7 @@ class _StatusScreenState extends State<StatusScreen>
     );
   }
 
-  Widget _buildMetersSection(SystemProvider system, computed) {
+  Widget _buildMetersSection(SystemProvider system, resolved) {
     return Column(
       children: [
         LiquidEnergyBar(
@@ -166,30 +166,30 @@ class _StatusScreenState extends State<StatusScreen>
 
   // Replaced with LiquidEnergyBar class below
 
-  Widget _buildStatsGrid(stats, computed) {
+  Widget _buildStatsGrid(stats, resolved) {
     final List<Map<String, dynamic>> statItems = [
       {
         "label": "Strength",
-        "val": computed.strength,
+        "val": resolved.strength,
         "key": "strength",
         "emoji": "💪"
       },
       {
         "label": "Agility",
-        "val": computed.agility,
+        "val": resolved.agility,
         "key": "agility",
         "emoji": "⚡"
       },
       {
         "label": "Vitality",
-        "val": computed.vitality,
+        "val": resolved.vitality,
         "key": "vitality",
         "emoji": "🛡️"
       },
-      {"label": "Sense", "val": computed.sense, "key": "sense", "emoji": "👁️"},
+      {"label": "Sense", "val": resolved.sense, "key": "sense", "emoji": "👁️"},
       {
         "label": "Intelligence",
-        "val": computed.intelligence,
+        "val": resolved.intelligence,
         "key": "intelligence",
         "emoji": "🧠"
       },

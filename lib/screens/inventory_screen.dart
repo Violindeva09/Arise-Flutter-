@@ -61,6 +61,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
   }
 
   Widget _buildHeader(SystemProvider system) {
+    final eq = system.equippedItems;
     return Row(
       children: [
         AriseUI.ornament(),
@@ -68,7 +69,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
         const Text("03 INVENTORY", style: AriseUI.heading),
         const Spacer(),
         Text(
-          'W:${system.equippedWeapon?.name ?? '-'} A:${system.equippedArmor?.name ?? '-'} X:${system.equippedAccessory?.name ?? '-'}',
+          'W:${eq[ItemType.weapon]?.name ?? '-'} A:${eq[ItemType.armor]?.name ?? '-'} X:${eq[ItemType.accessory]?.name ?? '-'}',
           style: const TextStyle(color: Colors.white54, fontSize: 8),
         )
       ],
@@ -123,7 +124,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
                     child: Icon(_getItemIcon(item.type),
                         color: AriseUI.primary, size: 20),
                   ),
-                  if (item.isEquipped)
+                  if (system.isEquipped(item))
                     const Positioned(
                       top: 2,
                       right: 2,
@@ -140,7 +141,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
     final canEquip = item.type == ItemType.weapon ||
         item.type == ItemType.armor ||
         item.type == ItemType.accessory;
-    final isEquipped = item.isEquipped;
+    final isEquipped = system.isEquipped(item);
 
     return Container(
       margin: const EdgeInsets.only(top: 24),
@@ -173,7 +174,9 @@ class _InventoryScreenState extends State<InventoryScreen> {
                             letterSpacing: 1)),
                     if (canEquip)
                       OutlinedButton(
-                        onPressed: () => system.equipOrUnequip(item),
+                        onPressed: () => isEquipped
+                            ? system.unequipItem(item.type)
+                            : system.equipItem(item),
                         child: Text(isEquipped ? 'UNEQUIP' : 'EQUIP'),
                       ),
                   ],
@@ -186,9 +189,9 @@ class _InventoryScreenState extends State<InventoryScreen> {
                         height: 1.5,
                         fontStyle: FontStyle.italic)),
                 const SizedBox(height: 8),
-                Text(
-                    '+${item.statBoost.strength} STR  +${item.statBoost.agility} AGI  +${item.statBoost.vitality} VIT  +${item.statBoost.sense} SENSE  +${item.statBoost.intelligence} INT',
-                    style: const TextStyle(color: Colors.white70, fontSize: 9)),
+                Text(item.statBoost.entries
+                    .map((e) => '+${e.value} ${e.key.toUpperCase()}')
+                    .join('  '), style: const TextStyle(color: Colors.white70, fontSize: 9)),
               ],
             ),
           ),

@@ -8,6 +8,7 @@ import '../data/inventory_data.dart';
 import '../services/equipment_service.dart';
 import '../services/game_logic.dart';
 import '../services/persistence_service.dart';
+import '../services/stat_resolver.dart';
 
 class SystemProvider with ChangeNotifier {
   PlayerStats _stats = PlayerStats(
@@ -26,12 +27,14 @@ class SystemProvider with ChangeNotifier {
   String _email = "";
   bool _isPenaltyActive = false;
   List<Item> _inventory = [];
+  final Map<ItemType, Item> _equippedItems = {};
 
   PlayerStats get stats => _stats;
   PlayerStats get computedStats => EquipmentService.applyAllBonuses(_stats, _inventory);
   String get playerName => _playerName;
   String get email => _email;
   List<Item> get inventory => _inventory;
+  Map<ItemType, Item> get equippedItems => Map.unmodifiable(_equippedItems);
   bool get isPenaltyActive => _isPenaltyActive;
 
   Item? get equippedWeapon => _equippedFor(EquipmentSlot.weapon);
@@ -41,17 +44,12 @@ class SystemProvider with ChangeNotifier {
   Penalty? get currentPenalty =>
       _isPenaltyActive ? PenaltyData.getCurrentPenalty() : null;
 
+  // Base vs modified stat separation via resolver
+  ResolvedPlayerStats get resolvedStats =>
+      StatResolver.resolve(baseStats: _stats, equippedItems: _equippedItems.values);
 
-  Item? _equippedFor(EquipmentSlot slot) {
-    for (final item in _inventory) {
-      if (item.slot == slot && item.isEquipped) return item;
-    }
-    return null;
-  }
-
-
-  int get maxHp => GameLogic.getMaxHp(computedStats.vitality);
-  int get maxMp => GameLogic.getMaxMp(computedStats.intelligence, computedStats.sense);
+  int get maxHp => resolvedStats.maxHp;
+  int get maxMp => resolvedStats.maxMp;
   double get expProgress => GameLogic.getExpProgress(_stats.exp, _stats.level);
 
   final List<Map<String, dynamic>> _questHistory = [];
@@ -63,6 +61,11 @@ class SystemProvider with ChangeNotifier {
     final savedState = await PersistenceService.loadPlayerState(name);
     if (savedState != null) {
       _stats = savedState.stats;
+    } else {
+      final savedStats = await PersistenceService.loadPlayerStats(name);
+      if (savedStats != null) {
+        _stats = savedStats;
+      }
     }
     _updateInventory();
     if (savedState != null) {
@@ -72,11 +75,14 @@ class SystemProvider with ChangeNotifier {
   }
 
   void _restoreEquippedItems(List<String> equippedItemIds) {
+    final availableItems = InventoryData.allItems;
     for (final id in equippedItemIds) {
-      final matches = _inventory.where((item) => item.id == id);
+      final matches = availableItems.where((item) => item.id == id);
       if (matches.isEmpty) continue;
-      EquipmentService.toggleEquip(matches.first, _inventory);
-      matches.first.isEquipped = true;
+      final item = matches.first;
+      if (_isEquippable(item.type) && _equippedItems[item.type] == null) {
+        _equippedItems[item.type] = item;
+      }
     }
   }
 
@@ -123,6 +129,28 @@ class SystemProvider with ChangeNotifier {
     _saveAndNotify();
   }
 
+  bool equipItem(Item item) {
+    if (!_isEquippable(item.type)) return false;
+    _equippedItems[item.type] = item;
+    _saveAndNotify();
+    return true;
+  }
+
+  bool unequipItem(ItemType slot) {
+    final removed = _equippedItems.remove(slot);
+    if (removed == null) return false;
+    _saveAndNotify();
+    return true;
+  }
+
+  bool isEquipped(Item item) => _equippedItems[item.type]?.id == item.id;
+
+  bool _isEquippable(ItemType type) {
+    return type == ItemType.weapon ||
+        type == ItemType.armor ||
+        type == ItemType.accessory;
+  }
+
   void _checkClassPromotion() {
     if (_stats.level >= GameLogic.CLASS_CHANGE_LEVEL &&
         _stats.hunterClass == "NONE") {
@@ -157,7 +185,7 @@ class SystemProvider with ChangeNotifier {
     PersistenceService.savePlayerState(
       _playerName,
       stats: _stats,
-      equippedItemIds: _inventory.where((item) => item.isEquipped).map((item) => item.id).toList(),
+      equippedItemIds: _equippedItems.values.map((item) => item.id).toList(),
     );
     notifyListeners();
   }

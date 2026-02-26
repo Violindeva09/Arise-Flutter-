@@ -32,7 +32,7 @@ class Item {
     return Item(
       id: json['id'],
       name: json['name'],
-      type: parsedType,
+      type: _safeItemType(json['type']),
       rarity: _safeItemRarity(json['rarity']),
       description: json['description'] ?? json['desc'] ?? "",
       slot: json['slot'] != null
@@ -73,33 +73,4 @@ ItemRarity _safeItemRarity(dynamic raw) {
     if (rarity.name == value) return rarity;
   }
   return ItemRarity.D;
-}
-
-EquipmentSlot? _safeSlot(dynamic raw) {
-  final value = raw?.toString() ?? '';
-  for (final slot in EquipmentSlot.values) {
-    if (slot.name == value) return slot;
-  }
-  return null;
-}
-
-EquipmentSlot? _slotFromType(ItemType type) {
-  switch (type) {
-    case ItemType.weapon:
-      return EquipmentSlot.weapon;
-    case ItemType.armor:
-      return EquipmentSlot.armor;
-    case ItemType.accessory:
-      return EquipmentSlot.accessory;
-    default:
-      return null;
-  }
-}
-
-
-StatBoost _normalizeStatBoost(dynamic raw) {
-  if (raw is StatBoost) return raw;
-  if (raw is Map<String, int>) return StatBoost.fromJson(raw);
-  if (raw is Map<String, dynamic>) return StatBoost.fromJson(raw);
-  return StatBoost.zero;
 }

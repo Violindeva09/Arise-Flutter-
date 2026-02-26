@@ -1,7 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_arise/models/item.dart';
 import 'package:flutter_arise/models/player_stats.dart';
 import 'package:flutter_arise/models/skill.dart';
 import 'package:flutter_arise/services/game_logic.dart';
+import 'package:flutter_arise/services/stat_resolver.dart';
 
 void main() {
   group('XP scaling logic', () {
@@ -110,4 +112,44 @@ void main() {
     });
   });
 
+  group('equipment stat aggregation', () {
+    test('aggregates equipped bonuses and recalculates hp/mp', () {
+      final base = PlayerStats(
+        level: 1,
+        rank: 'E',
+        exp: 0,
+        strength: 5,
+        agility: 5,
+        vitality: 5,
+        sense: 5,
+        intelligence: 5,
+        statPoints: 0,
+      );
+      final equipped = [
+        const Item(
+          id: 'w1',
+          name: 'Sword',
+          type: ItemType.weapon,
+          rarity: ItemRarity.C,
+          description: '',
+          statBoost: {'strength': 3, 'vitality': 2},
+        ),
+        const Item(
+          id: 'a1',
+          name: 'Amulet',
+          type: ItemType.accessory,
+          rarity: ItemRarity.C,
+          description: '',
+          statBoost: {'intelligence': 4, 'sense': 1},
+        )
+      ];
+
+      final resolved = StatResolver.resolve(baseStats: base, equippedItems: equipped);
+      expect(resolved.strength, 8);
+      expect(resolved.vitality, 7);
+      expect(resolved.intelligence, 9);
+      expect(resolved.maxHp, 170);
+      expect(resolved.maxMp, 65);
+    });
+  });
 }
