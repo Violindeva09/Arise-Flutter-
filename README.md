@@ -1,160 +1,160 @@
-# \# ⚔️ ARISE - Real World Level Up System
+\# ⚔️ ARISE - Real World Level Up System
 
-# 
 
-# ARISE is a gamified productivity and self-improvement system based on the Solo Leveling series.
 
-# 
+ARISE is a gamified productivity and self-improvement system based on the Solo Leveling series.
 
-# This app gamifies real-world tasks as quests, monitors stats, and rewards discipline like an RPG character development system.
 
-# 
 
-# ---
+This app gamifies real-world tasks as quests, monitors stats, and rewards discipline like an RPG character development system.
 
-# 
 
-# \## 🚀 Vision
 
-# 
+---
 
-# To develop a systematic, stat-based life management system where users:
 
-# 
 
-# \- Undertake quests (daily tasks)
+\## 🚀 Vision
 
-# \- Earn XP
 
-# \- Level up
 
-# \- Upgrade real-world stats such as:
+To develop a systematic, stat-based life management system where users:
 
-# &nbsp; - Strength
 
-# &nbsp; - Intelligence
 
-# &nbsp; - Discipline
+\- Undertake quests (daily tasks)
 
-# &nbsp; - Stamina
+\- Earn XP
 
-# &nbsp; - Charisma
+\- Level up
 
-# 
+\- Upgrade real-world stats such as:
 
-# ---
+  - Strength
 
-# 
+  - Intelligence
 
-# \## 🛠️ Tech Stack
+  - Discipline
 
-# 
+  - Stamina
 
-# \- Flutter
+  - Charisma
 
-# \- Dart
 
-# \- Provider / Riverpod (state management)
 
-# \- Local Storage (Hive / SharedPreferences)
+---
 
-# \- Firebase (planned)
 
-# 
 
-# ---
+\## 🛠️ Tech Stack
 
-# 
 
-# \## 📌 Current Features (MVP)
 
-# 
+\- Flutter
 
-# \- Quest system
+\- Dart
 
-# \- Stat boost system
+\- Provider / Riverpod (state management)
 
-# \- XP system
+\- Local Storage (Hive / SharedPreferences)
 
-# \- Leveling system logic
+\- Firebase (planned)
 
-# 
 
-# ---
 
-# 
+---
 
-# \## 🔥 Future Roadmap
 
-# 
 
-# \- Achievement system
+\## 📌 Current Features (MVP)
 
-# \- Daily streak system
 
-# \- Character profile interface
 
-# \- Leaderboard
+\- Quest system
 
-# \- Cloud syncing
+\- Stat boost system
 
-# 
+\- XP system
 
-# ---
+\- Leveling system logic
 
-# 
 
-# \## 🧠 Project Philosophy
 
-# 
+---
 
-# ARISE is more than an app.
 
-# 
 
-# It is a systematic life management system based on:
+\## 🔥 Future Roadmap
 
-# 
 
-# \- Discipline
 
-# \- Consistency
+\- Achievement system
 
-# \- Real-world grinding
+\- Daily streak system
 
-# \- RPG character development psychology
+\- Character profile interface
 
-# 
+\- Leaderboard
 
-# ---
+\- Cloud syncing
 
-# 
 
-# \## 👤 Developer
 
-# 
+---
 
-# Devansh  
 
-# B.Tech AI | Builder | Musician  
 
-# 
+\## 🧠 Project Philosophy
 
-# ---
 
-# 
 
-# \## 📦 Setup Instructions
+ARISE is more than an app.
 
-# 
 
-# ```bash
 
-# git clone https://github.com/your-username/flutter\_arise.git
+It is a systematic life management system based on:
 
-# cd flutter\_arise
 
-# flutter pub get
 
-# flutter run
+\- Discipline
+
+\- Consistency
+
+\- Real-world grinding
+
+\- RPG character development psychology
+
+
+
+---
+
+
+
+\## 👤 Developer
+
+
+
+Devansh
+
+B.Tech AI | Builder | Musician
+
+
+
+---
+
+
+
+\## 📦 Setup Instructions
+
+
+
+```bash
+
+git clone https://github.com/your-username/flutter\_arise.git
+
+cd flutter\_arise
+
+flutter pub get
+
+flutter run
 
