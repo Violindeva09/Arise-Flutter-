@@ -2,11 +2,11 @@
 
 
 
-ARISE is a gamified productivity and self-improvement system based on the Solo Leveling series.
+ARISE is a gamified productivity and self-improvement system inspired by the Solo Leveling series.
 
 
 
-This app gamifies real-world tasks as quests, monitors stats, and rewards discipline like an RPG character development system.
+This app gamifies real-world tasks as quests, tracks stats, and rewards discipline like an RPG character development system.
 
 
 
@@ -18,27 +18,27 @@ This app gamifies real-world tasks as quests, monitors stats, and rewards discip
 
 
 
-To develop a systematic, stat-based life management system where users:
+To create a systematic, stat-based life management system where users:
 
 
 
-\- Undertake quests (daily tasks)
+\- Complete quests (daily tasks)
 
-\- Earn XP
+\- Gain XP
 
 \- Level up
 
-\- Upgrade real-world stats such as:
+\- Improve real-world stats such as:
 
-  - Strength
+&nbsp; - Strength
 
-  - Intelligence
+&nbsp; - Intelligence
 
-  - Discipline
+&nbsp; - Discipline
 
-  - Stamina
+&nbsp; - Stamina
 
-  - Charisma
+&nbsp; - Charisma
 
 
 
@@ -134,9 +134,9 @@ It is a systematic life management system based on:
 
 
 
-Devansh
+Devansh  
 
-B.Tech AI | Builder | Musician
+B.Tech AI | Builder | Musician  
 
 
 
@@ -150,7 +150,7 @@ B.Tech AI | Builder | Musician
 
 ```bash
 
-git clone https://github.com/your-username/flutter\_arise.git
+git clone https://github.com/Violindeva09/Arise-Flutter-.git
 
 cd flutter\_arise
 
