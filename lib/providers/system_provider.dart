@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import '../models/player_stats.dart';
 import '../models/item.dart';
 import '../models/skill.dart';
+import '../models/equipment_slot.dart';
 import '../data/penalty_data.dart';
 import '../data/inventory_data.dart';
+import '../services/equipment_service.dart';
 import '../services/game_logic.dart';
 import '../services/persistence_service.dart';
 import '../services/stat_resolver.dart';
@@ -27,13 +29,18 @@ class SystemProvider with ChangeNotifier {
   List<Item> _inventory = [];
   final Map<ItemType, Item> _equippedItems = {};
 
-  // Getters
   PlayerStats get stats => _stats;
+  PlayerStats get computedStats => EquipmentService.applyAllBonuses(_stats, _inventory);
   String get playerName => _playerName;
   String get email => _email;
   List<Item> get inventory => _inventory;
   Map<ItemType, Item> get equippedItems => Map.unmodifiable(_equippedItems);
   bool get isPenaltyActive => _isPenaltyActive;
+
+  Item? get equippedWeapon => _equippedFor(EquipmentSlot.weapon);
+  Item? get equippedArmor => _equippedFor(EquipmentSlot.armor);
+  Item? get equippedAccessory => _equippedFor(EquipmentSlot.accessory);
+
   Penalty? get currentPenalty =>
       _isPenaltyActive ? PenaltyData.getCurrentPenalty() : null;
 
@@ -45,7 +52,6 @@ class SystemProvider with ChangeNotifier {
   int get maxMp => resolvedStats.maxMp;
   double get expProgress => GameLogic.getExpProgress(_stats.exp, _stats.level);
 
-  // History Tracking
   final List<Map<String, dynamic>> _questHistory = [];
   List<Map<String, dynamic>> get questHistory => _questHistory;
 
@@ -88,6 +94,12 @@ class SystemProvider with ChangeNotifier {
     _stats = _stats.copyWith(preferredWorkoutType: type);
     _updateInventory();
     _saveAndNotify();
+  }
+
+  bool equipOrUnequip(Item item) {
+    final changed = EquipmentService.toggleEquip(item, _inventory);
+    if (changed) _saveAndNotify();
+    return changed;
   }
 
   void awakenPlayer() {

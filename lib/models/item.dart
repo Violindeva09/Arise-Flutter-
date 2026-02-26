@@ -1,32 +1,47 @@
+import 'equipment_slot.dart';
+import 'stat_boost.dart';
+
 enum ItemRarity { D, C, B, A, S }
 
 enum ItemType { weapon, armor, accessory, consumable, material }
 
 class Item {
-  final String id; // Changed to String for better ID management
+  final String id;
   final String name;
   final ItemType type;
   final ItemRarity rarity;
   final String description;
-  final Map<String, int> statBoost;
+  final EquipmentSlot? slot; // null means non-equippable
+  final StatBoost statBoost;
+  bool isEquipped;
 
-  const Item({
+  Item({
     required this.id,
     required this.name,
     required this.type,
     required this.rarity,
     required this.description,
-    this.statBoost = const {},
-  });
+    EquipmentSlot? slot,
+    dynamic statBoost = StatBoost.zero,
+    this.isEquipped = false,
+  })  : slot = slot ?? _slotFromType(type),
+        statBoost = _normalizeStatBoost(statBoost);
 
   factory Item.fromJson(Map<String, dynamic> json) {
+    final parsedType = _safeItemType(json['type']);
     return Item(
       id: json['id'],
       name: json['name'],
       type: _safeItemType(json['type']),
       rarity: _safeItemRarity(json['rarity']),
       description: json['description'] ?? json['desc'] ?? "",
-      statBoost: Map<String, int>.from(json['statBoost'] ?? {}),
+      slot: json['slot'] != null
+          ? _safeSlot(json['slot'])
+          : _slotFromType(parsedType),
+      statBoost: StatBoost.fromJson(
+        (json['statBoost'] as Map<String, dynamic>?) ?? const {},
+      ),
+      isEquipped: json['isEquipped'] ?? false,
     );
   }
 
@@ -37,7 +52,9 @@ class Item {
       'type': type.name,
       'rarity': rarity.name,
       'description': description,
-      'statBoost': statBoost,
+      'slot': slot?.name,
+      'statBoost': statBoost.toJson(),
+      'isEquipped': isEquipped,
     };
   }
 }
