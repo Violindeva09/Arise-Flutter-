@@ -25,6 +25,7 @@ class _StatusScreenState extends State<StatusScreen>
   Widget build(BuildContext context) {
     final system = Provider.of<SystemProvider>(context);
     final stats = system.stats;
+    final resolved = system.resolvedStats;
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -42,7 +43,7 @@ class _StatusScreenState extends State<StatusScreen>
                 child: TabBarView(
                   controller: _tabController,
                   children: [
-                    _buildStatsTab(system, stats),
+                    _buildStatsTab(system, stats, resolved),
                     _buildHistoryTab(system),
                   ],
                 ),
@@ -86,16 +87,16 @@ class _StatusScreenState extends State<StatusScreen>
     );
   }
 
-  Widget _buildStatsTab(SystemProvider system, stats) {
+  Widget _buildStatsTab(SystemProvider system, stats, resolved) {
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildProfileSection(system, stats),
           const SizedBox(height: 32),
-          _buildMetersSection(system, stats),
+          _buildMetersSection(system, resolved),
           const SizedBox(height: 32),
-          _buildStatsGrid(stats),
+          _buildStatsGrid(stats, resolved),
           const SizedBox(height: 32),
           _buildClassGate(stats),
         ],
@@ -147,7 +148,7 @@ class _StatusScreenState extends State<StatusScreen>
     );
   }
 
-  Widget _buildMetersSection(SystemProvider system, stats) {
+  Widget _buildMetersSection(SystemProvider system, resolved) {
     return Column(
       children: [
         LiquidEnergyBar(
@@ -165,30 +166,30 @@ class _StatusScreenState extends State<StatusScreen>
 
   // Replaced with LiquidEnergyBar class below
 
-  Widget _buildStatsGrid(stats) {
+  Widget _buildStatsGrid(stats, resolved) {
     final List<Map<String, dynamic>> statItems = [
       {
         "label": "Strength",
-        "val": stats.strength,
+        "val": resolved.strength,
         "key": "strength",
         "emoji": "💪"
       },
       {
         "label": "Agility",
-        "val": stats.agility,
+        "val": resolved.agility,
         "key": "agility",
         "emoji": "⚡"
       },
       {
         "label": "Vitality",
-        "val": stats.vitality,
+        "val": resolved.vitality,
         "key": "vitality",
         "emoji": "🛡️"
       },
-      {"label": "Sense", "val": stats.sense, "key": "sense", "emoji": "👁️"},
+      {"label": "Sense", "val": resolved.sense, "key": "sense", "emoji": "👁️"},
       {
         "label": "Intelligence",
-        "val": stats.intelligence,
+        "val": resolved.intelligence,
         "key": "intelligence",
         "emoji": "🧠"
       },
